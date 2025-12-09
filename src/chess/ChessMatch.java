@@ -16,6 +16,7 @@ public class ChessMatch {
 	private Color currentPlayer;
 	private Board board;
 	private boolean check;
+	private boolean checkMate;
 
 	private List<Piece> capturedPieces = new ArrayList<>();
 	private List<Piece> piecesOnTheBoard = new ArrayList<>();
@@ -34,9 +35,13 @@ public class ChessMatch {
 	public Color getCurrentPlayer() {
 		return currentPlayer;
 	}
-	
+
 	public boolean getCheck() {
 		return check;
+	}
+
+	public boolean getCheckMate() {
+		return checkMate;
 	}
 
 	public ChessPiece[][] getPieces() {
@@ -61,15 +66,20 @@ public class ChessMatch {
 		validateSourcePosition(source);
 		validateTargetPosition(source, target);
 		Piece capturedPiece = makeMove(source, target);
-		
-		if(testCheck(currentPlayer)) {// testa se o jogador se colocou em check
-			undoMove(source,target,capturedPiece);
-			throw new ChessException( "Você não pode se colocar em check" );
+
+		if (testCheck(currentPlayer)) {// testa se o jogador se colocou em check
+			undoMove(source, target, capturedPiece);
+			throw new ChessException("Você não pode se colocar em check");
 		}
-		
-		check = (testCheck(opponent(currentPlayer))) ? true : false;
-		
-		nextTurn();
+
+		check = (testCheck(opponent(currentPlayer))) ? true : false;// se não estiver em check, continua
+
+		if (testCheckMate(opponent(currentPlayer))) {// se não estiver em checkMate
+			checkMate = true;
+		} else {
+			nextTurn();// proximo a joga
+		}
+
 		return (ChessPiece) capturedPiece;
 	}
 
@@ -125,25 +135,53 @@ public class ChessMatch {
 	}
 
 	private ChessPiece king(Color color) {
-		List<Piece> list = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == color).collect(Collectors.toList());
-		for(Piece p : list) {
-			if(p instanceof King) {// se for uma instancia deo rei, achei o rei
-				return (ChessPiece)p;
+		List<Piece> list = piecesOnTheBoard.stream().filter(x -> ((ChessPiece) x).getColor() == color)
+				.collect(Collectors.toList());
+		for (Piece p : list) {
+			if (p instanceof King) {// se for uma instancia deo rei, achei o rei
+				return (ChessPiece) p;
 			}
 		}
 		throw new IllegalStateException("O Rei da " + color + " não foi encontrado");
 	}
-	
+
 	private boolean testCheck(Color color) {
 		Position kingPosition = king(color).getChessPosition().toPosition();
-		List<Piece> opponentPieces = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == opponent(color)).collect(Collectors.toList());
-		for(Piece p : opponentPieces) {// percorre a lista de filtro
-			boolean[][] mat =p.possibleMoves();// observa os movimentos possiveis 
-			if(mat[kingPosition.getRow()][kingPosition.getColumn()]) {
+		List<Piece> opponentPieces = piecesOnTheBoard.stream()
+				.filter(x -> ((ChessPiece) x).getColor() == opponent(color)).collect(Collectors.toList());
+		for (Piece p : opponentPieces) {// percorre a lista de filtro
+			boolean[][] mat = p.possibleMoves();// observa os movimentos possiveis
+			if (mat[kingPosition.getRow()][kingPosition.getColumn()]) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private boolean testCheckMate(Color color) {
+		if (!testCheck(color)) {// se não estiver em check, não esta em checkMate
+			return false;
+		}
+		List<Piece> list = piecesOnTheBoard.stream().filter(x -> ((ChessPiece) x).getColor() == color)
+				.collect(Collectors.toList());// filtra a lista por cor
+		for (Piece p : list) {// percorre a lista
+			boolean[][] mat = p.possibleMoves();// possiveis movimentos
+			for (int i = 0; i < board.getRows(); i++) {// percorre linha
+				for (int j = 0; j < board.getColumns(); j++) {// percorre coluna
+					if (mat[i][j]) {
+						Position source = ((ChessPiece) p).getChessPosition().toPosition();// pega a posição do check
+						Position target = new Position(i, j);// movimento possivel
+						Piece capturedPiece = makeMove(source, target);// tira do check com o movimento possivel
+						boolean testCheck = testCheck(color);// testa se o Rei da mesma cor ainda esta em check
+						undoMove(source, target, capturedPiece);// volta a jogada apos testa se tem movimento possivel
+						if (!testCheck) {// se não estava em check
+							return false;
+						}
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 	private void placeNewPiece(char column, int row, ChessPiece piece) {
@@ -152,18 +190,11 @@ public class ChessMatch {
 	}
 
 	private void initialSetup() {// coloca peças na tabuleiro
-		placeNewPiece('c', 1, new Rook(board, Color.WHITE));
-		placeNewPiece('c', 2, new Rook(board, Color.WHITE));
-		placeNewPiece('d', 2, new Rook(board, Color.WHITE));
-		placeNewPiece('e', 2, new Rook(board, Color.WHITE));
-		placeNewPiece('e', 1, new Rook(board, Color.WHITE));
-		placeNewPiece('d', 1, new King(board, Color.WHITE));
+		placeNewPiece('h', 7, new Rook(board, Color.WHITE));
+		placeNewPiece('d', 1, new Rook(board, Color.WHITE));
+		placeNewPiece('e', 1, new King(board, Color.WHITE));
 
-		placeNewPiece('c', 7, new Rook(board, Color.BLACK));
-		placeNewPiece('c', 8, new Rook(board, Color.BLACK));
-		placeNewPiece('d', 7, new Rook(board, Color.BLACK));
-		placeNewPiece('e', 7, new Rook(board, Color.BLACK));
-		placeNewPiece('e', 8, new Rook(board, Color.BLACK));
-		placeNewPiece('d', 8, new King(board, Color.BLACK));
+		placeNewPiece('b', 8, new Rook(board, Color.BLACK));
+		placeNewPiece('a', 8, new King(board, Color.BLACK));
 	}
 }
