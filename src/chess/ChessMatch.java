@@ -84,7 +84,8 @@ public class ChessMatch {
 	}
 
 	private Piece makeMove(Position source, Position target) {// fazemdo a jogada
-		Piece p = board.removePiece(source);// remove a peça da posição de origem
+		ChessPiece p = (ChessPiece) board.removePiece(source);// remove a peça da posição de origem
+		p.increaseMoveCount();// contabiliza a jogada
 		Piece capturedPiece = board.removePiece(target);// capitura a peça que esta na posição destino
 		board.placePiece(p, target); // coloca a peça da posição de origem na de destino
 
@@ -97,7 +98,8 @@ public class ChessMatch {
 	}
 
 	private void undoMove(Position source, Position target, Piece capturedPiece) {// voltando a jogada
-		Piece p = board.removePiece(target);// pega a peça removida da posição destino
+		ChessPiece p = (ChessPiece) board.removePiece(target);// pega a peça removida da posição destino
+		p.decreaseMoveCount();// remove a jogada do calculo
 		board.placePiece(p, source);// devolve a peça para posição de origem
 
 		if (capturedPiece != null) {// voltar a peça a posiçaõ de destino
